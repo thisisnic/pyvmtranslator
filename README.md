@@ -8,3 +8,13 @@ Steps:
    • it can be helpful to output comments containing the VM code so it's easier to debug later
 3. Load ...`.tst` file into the CPU emulator and inspect results (cant use `.asm` file as there are some initialization steps we need but haven't done in this project)
 
+## Example usage
+
+To run the code:
+
+```py
+python3 ./vmtranslator/vmtranslator.py ./add/Add.asm
+```
+
+
+
