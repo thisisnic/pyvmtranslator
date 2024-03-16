@@ -28,7 +28,10 @@ CodeWriter
 
 ![image](https://github.com/thisisnic/pyvmtranslator/assets/13715823/db70b0dc-5916-4f0e-b41a-cc5afbc46d3c)
 
-  
+### Big Picture
+
+![image](https://github.com/thisisnic/pyvmtranslator/assets/13715823/e8b10896-403d-4884-82d0-40a41b269664)
+
 
 
 ### Test Steps:###
