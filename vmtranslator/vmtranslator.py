@@ -17,19 +17,29 @@ class Parser:
     def __init__(self, input_file):
         try:
             with open(input_file, 'r') as file:
-                self.contents = file.read()
-                self.next_line_index = 0
+                file_contents = file.read()
         except FileNotFoundError:
             print("File not found.")
         except Exception as e:
             print("An error occurred:", e)
 
-    def parse_next():
-        pass
+        self.contents = self.clean_contents(file_contents)
+        self.next_line_index = 0
 
-    def has_more_commands(abc):
-    # are there more commands to parse?
-        return True
+
+    def clean_contents(self, file_contents):
+        contents = file_contents.split("\n")
+        contents = [line for line in contents if not (line.startswith("//") or line == "")]
+        return contents
+    
+    def parse_next(self):
+        line_to_parse = self.contents[self.next_line_index]
+        self.next_line_index += 1
+        # body of parsing stuff here
+        return line_to_parse
+
+    def has_more_commands(self):
+        return (self.next_line_index < len(self.contents))
         
     def command_type():
     # returns a constant representing the type of the current command
@@ -52,12 +62,18 @@ class Parser:
 
 
 class CodeWriter:
-    def __init__(output_file):
+    def __init__(self, output_file):
     # opens the output file/stream and gets it ready to write to
+        self.filename = output_file
         pass
 
-    def write_next():
-        pass
+    def write_next(self, line):
+        try:
+            with open(self.filename, 'a') as file:
+                # do some parsing stuff here
+                file.write(f"//{line}\n")
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
     
     def write_arithmetic(command):
     # writes to the output file the assembly code that implements
@@ -89,7 +105,7 @@ def main():
 
     input_filename = sys.argv[1]
 
-    parser = Parser()
+    parser = Parser(input_filename)
     code_writer = CodeWriter(get_output_filename(input_filename))
 
     while parser.has_more_commands():
