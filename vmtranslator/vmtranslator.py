@@ -35,40 +35,55 @@ class Parser:
     def parse_next(self):
         line_to_parse = self.contents[self.next_line_index]
         self.next_line_index += 1
-        # body of parsing stuff here
 
         parsed_line = {'og_line': line_to_parse, 'command_type': None, 'arg1': '', 'arg2': ''}
         parsed_line['command_type'] = self.command_type(line_to_parse)
         if(parsed_line['command_type'] != CommandType.C_RETURN):
-            parsed_line['arg1'] = self.arg1(line_to_parse)
+            parsed_line['arg1'] = self.arg1(line_to_parse, parsed_line['command_type'])
         if(parsed_line['command_type'] in [CommandType.C_PUSH, CommandType.C_POP, CommandType.C_FUNCTION, CommandType.C_CALL]):
             parsed_line['arg2'] = self.arg2(line_to_parse)
 
-        # i guess we wanna return a dict containing the original line and then the different bits
         return parsed_line
 
     def has_more_commands(self):
         return (self.next_line_index < len(self.contents))
         
     def command_type(self, line):
-    # returns a constant representing the type of the current command
-    # C_ARITHMETIC is returned for all the arithmetic/logical commands
-        return CommandType.C_ARITHMETIC
+        if line.startswith("push "):
+            return CommandType.C_PUSH
+        if line.startswith("pop "):
+            return CommandType.C_POP
+        if self.command_maths(line):
+            return CommandType.C_ARITHMETIC
+        if line.startswith("call"):
+            return CommandType.C_CALL
+        if line.startswith("function"):
+            return CommandType.C_FUNCTION
+        if line.startswith("goto"):
+            return CommandType.C_GOTO
+        if line.startswith("if-goto"):
+            return CommandType.C_IF
+        if line.startswith("label"):
+            return CommandType.C_LABEL
+        else:
+            raise ValueError("Unrecognised command type in line: " + line)
+
+
+    def command_maths(self, line):
+        arith_commands = ['add', 'sub', 'neg', 'eq', 'gt', 'lt', 'and', 'or', 'not']
+        return any(line.startswith(command) for command in arith_commands)
+
     
-    def arg1(self, line):
-    # returns first argument of current command
-    # in the case of C_ARITHMETIC, the command itself (add, sub, etc)
-    # is returned. Should not be called if the current command
-    # is C_RETURN
-        return "add"
+    def arg1(self, line, command_type):
+        if command_type == CommandType.C_ARITHMETIC:
+            return line
+        else:
+            return line.split(" ")[1]
+      
     
     def arg2(self, line):
-    # returns the second argument of the current command
-    # should be called only if the current command is 
-    # C_PUSH, C_POP, C_FUNCTION, or C_CALL
-        return 1
+        return line.split(" ")[2]
     
-
 
 class CodeWriter:
     def __init__(self, output_file):
