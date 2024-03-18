@@ -36,24 +36,33 @@ class Parser:
         line_to_parse = self.contents[self.next_line_index]
         self.next_line_index += 1
         # body of parsing stuff here
-        return line_to_parse
+
+        parsed_line = {'og_line': line_to_parse, 'command_type': None, 'arg1': '', 'arg2': ''}
+        parsed_line['command_type'] = self.command_type(line_to_parse)
+        if(parsed_line['command_type'] != CommandType.C_RETURN):
+            parsed_line['arg1'] = self.arg1(line_to_parse)
+        if(parsed_line['command_type'] in [CommandType.C_PUSH, CommandType.C_POP, CommandType.C_FUNCTION, CommandType.C_CALL]):
+            parsed_line['arg2'] = self.arg2(line_to_parse)
+
+        # i guess we wanna return a dict containing the original line and then the different bits
+        return parsed_line
 
     def has_more_commands(self):
         return (self.next_line_index < len(self.contents))
         
-    def command_type():
+    def command_type(self, line):
     # returns a constant representing the type of the current command
     # C_ARITHMETIC is returned for all the arithmetic/logical commands
         return CommandType.C_ARITHMETIC
     
-    def arg1():
+    def arg1(self, line):
     # returns first argument of current command
     # in the case of C_ARITHMETIC, the command itself (add, sub, etc)
     # is returned. Should not be called if the current command
     # is C_RETURN
         return "add"
     
-    def arg2():
+    def arg2(self, line):
     # returns the second argument of the current command
     # should be called only if the current command is 
     # C_PUSH, C_POP, C_FUNCTION, or C_CALL
@@ -70,8 +79,10 @@ class CodeWriter:
     def write_next(self, line):
         try:
             with open(self.filename, 'a') as file:
+                file.write(f"//{line['og_line']}\n")
                 # do some parsing stuff here
-                file.write(f"//{line}\n")
+                # write the parsed version of the line to the file
+
         except Exception as e:
                 print("An error occurred while writing to the file:", e)
     
