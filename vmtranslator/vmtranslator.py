@@ -89,33 +89,43 @@ class CodeWriter:
     def __init__(self, output_file):
     # opens the output file/stream and gets it ready to write to
         self.filename = output_file
-        pass
 
     def write_next(self, line):
         try:
             with open(self.filename, 'a') as file:
                 file.write(f"//{line['og_line']}\n")
-                # do some parsing stuff here
-                # write the parsed version of the line to the file
-
         except Exception as e:
                 print("An error occurred while writing to the file:", e)
+
+        if line['command_type'] == CommandType.C_ARITHMETIC:
+            self.write_arithmetic(line['arg1'])
+
+        if line['command_type'] in [CommandType.C_PUSH, CommandType.C_POP]:
+            self.write_push_pop(line['command_type'], line['arg1'], line['arg2'])
     
-    def write_arithmetic(command):
+    def write_arithmetic(self, command):
     # writes to the output file the assembly code that implements
     #  the given arithmetic command
-        pass
+        try:
+            with open(self.filename, 'a') as file:
+                # put code here to decompose command into commands
+                file.write(command + " ")
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
+
     
-    def write_push_pop(command, segment, index):
+    def write_push_pop(self, command, segment, index):
     # `command` is C_PUSH or C_POP, segment is a string, index is an int
     # writes to the output file the assembly code that implements the given command
     #  where command is either C_POP or C_PUSH
-        pass
-    
-    def close():
-    # closes the output file
-        pass
+        try:
+            with open(self.filename, 'a') as file:
+                # put code here to decompose command into commands
+                file.write(str(command) + " " + segment + " " + index + "\n") 
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
 
+    
 def get_output_filename(input_filename):
     
     file_name, _ = os.path.splitext(os.path.basename(input_filename))
@@ -130,6 +140,7 @@ def main():
         sys.exit(1)
 
     input_filename = sys.argv[1]
+
 
     parser = Parser(input_filename)
     code_writer = CodeWriter(get_output_filename(input_filename))
