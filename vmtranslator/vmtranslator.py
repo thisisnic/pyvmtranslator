@@ -1,4 +1,6 @@
 from enum import Enum
+import os
+import sys
 
 class CommandType(Enum):
     C_ARITHMETIC = 1
@@ -12,8 +14,17 @@ class CommandType(Enum):
     C_CALL = 9
 
 class Parser:
-    def __init__(path):
-    # open file
+    def __init__(self, input_file):
+        try:
+            with open(input_file, 'r') as file:
+                self.contents = file.read()
+                self.next_line_index = 0
+        except FileNotFoundError:
+            print("File not found.")
+        except Exception as e:
+            print("An error occurred:", e)
+
+    def parse_next():
         pass
 
     def has_more_commands(abc):
@@ -44,6 +55,9 @@ class CodeWriter:
     def __init__(output_file):
     # opens the output file/stream and gets it ready to write to
         pass
+
+    def write_next():
+        pass
     
     def write_arithmetic(command):
     # writes to the output file the assembly code that implements
@@ -60,9 +74,27 @@ class CodeWriter:
     # closes the output file
         pass
 
+def get_output_filename(input_filename):
+    
+    file_name, _ = os.path.splitext(os.path.basename(input_filename))
+    output_filename = f"{file_name}.asm"
+    
+    return output_filename
 
 def main():
-    print("Hello World!")
+
+    if len(sys.argv) != 2:
+        print("Usage: python vm_translator.py <input_file_path>")
+        sys.exit(1)
+
+    input_filename = sys.argv[1]
+
+    parser = Parser()
+    code_writer = CodeWriter(get_output_filename(input_filename))
+
+    while parser.has_more_commands():
+        parsed_line = parser.parse_next()
+        code_writer.write_next(parsed_line)
 
 if __name__ == "__main__":
     main()
