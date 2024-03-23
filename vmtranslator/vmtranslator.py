@@ -26,7 +26,6 @@ class Parser:
         self.contents = self.clean_contents(file_contents)
         self.next_line_index = 0
 
-
     def clean_contents(self, file_contents):
         contents = file_contents.split("\n")
         contents = [line for line in contents if not (line.startswith("//") or line == "")]
@@ -89,6 +88,7 @@ class CodeWriter:
     def __init__(self, output_file):
     # opens the output file/stream and gets it ready to write to
         self.filename = output_file
+        self.logical_label_num = 0
 
     def write_next(self, line):
         try:
@@ -123,23 +123,38 @@ class CodeWriter:
             return asm_load_sp() + asm_decrement_address() + "D=D-M\n"  + asm_save_d_as_m() # or should it be M-D??
         elif arg1 == "neg":
             return asm_load_sp() + "D=-D\n" + asm_save_d_as_m()
-        elif arg1 == "eq":
-            return asm_load_sp() 
-        elif arg1 == "gt":
-            return asm_load_sp()
-        elif arg1 == "lt":
-            return asm_load_sp()
+        elif arg1 in ["gt", "lt", "eq"]:
+            self.logical_label_num += 1
+            return asm_load_sp() + asm_decrement_address() + asm_deduct_m_from_d() + self.asm_logical_comparison(arg1)
         elif arg1 == "and":
-            return asm_load_sp() + asm_decrement_address() + "D=D&M\n" + asm_save_d_as_m()
+            return asm_load_sp() + asm_decrement_address() + asm_deduct_m_from_d() + asm_save_d_as_m()
         elif arg1 == "or":
-            return asm_load_sp() + asm_decrement_address() + "D=D|M\n" + asm_save_d_as_m()
+            return asm_load_sp() + asm_decrement_address() + asm_deduct_m_from_d() + asm_save_d_as_m()
         elif arg1 == "not":
             return asm_load_sp() + "D=!D\n" + asm_save_d_as_m()
         else:  
             return arg1
 
+    def asm_logical_comparison(self, op):
+        asm_compare_string = ""
+        asm_compare_op = ""
 
-    
+        # we invert the operations
+        if op == "gt":
+            asm_compare_op = "JLE"
+        elif op == "lt":
+            asm_compare_op = "JGE"
+        elif op == "eq":
+            asm_compare_op = "JNE"
+
+        asm_compare_string = "@FALSE" + self.logical_label_num + "\n" + "D;" + asm_compare_op + "\n@SP\nA=M-1\nM=-1\n" + \
+                            "@CONTINUE" + self.logical_label_num + "\n0;JMP\n"+\
+                            "(FALSE" + self.logical_label_num + ")\n@SP\nA=M-1\nM=0\n"+\
+                            "(CONTINUE" + self.logical_label_num + ")\n"
+
+        return asm_compare_string
+
+
     def write_push_pop(self, command, segment, index):
     # `command` is C_PUSH or C_POP, segment is a string, index is an int
     # writes to the output file the assembly code that implements the given command
@@ -231,6 +246,9 @@ def asm_decrement_sp():
 
 def asm_save_d_as_m():
     return "M=D\n"
+
+def asm_deduct_m_from_d():
+        return "D=M-D\n"
 
 def main():
 
