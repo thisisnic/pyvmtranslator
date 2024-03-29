@@ -90,6 +90,8 @@ class CodeWriter:
         self.filename = output_file
         self.logical_label_num = 0
         self.static_num = 0
+        if os.path.isfile(output_file):
+            os.remove(output_file)
 
     def write_next(self, line):
         try:
@@ -115,21 +117,20 @@ class CodeWriter:
 
     def translate_arithmetic(self, arg1):
         if arg1 == "add":
-            return asm_load_sp_value() + "A=A-1\nD=D+M\n@SP\nA=M\nA=A-1\nA=A-1\nM=D\n"
-            
+            return asm_load_sp_value() + asm_decrement_address() +"D=D+M\n" + asm_save_result(args = 2)
         elif arg1 == "sub":
-            return asm_load_sp_value() + asm_decrement_address() + "D=D-M\n"  + asm_save_d_as_m() # or should it be M-D??
+            return asm_load_sp_value() + asm_decrement_address() + "D=D-M\nD=-D\n"  + asm_save_result(args = 2)
         elif arg1 == "neg":
-            return asm_load_sp_value() + "D=-D\n" + asm_save_d_as_m()
+            return asm_load_sp_value() + "D=-D\n" + + asm_save_result(args = 1)
         elif arg1 in ["gt", "lt", "eq"]:
             self.logical_label_num += 1
-            return asm_load_sp_value() + asm_decrement_address() + asm_deduct_m_from_d() + self.asm_logical_comparison(arg1)
+            return asm_load_sp_value() + asm_decrement_address() + "" + self.asm_logical_comparison(arg1)
         elif arg1 == "and":
-            return asm_load_sp_value() + asm_decrement_address() + asm_deduct_m_from_d() + asm_save_d_as_m()
+            return asm_load_sp_value() + asm_decrement_address() + "D=D&M" + asm_save_result(args = 2)
         elif arg1 == "or":
-            return asm_load_sp_value() + asm_decrement_address() + asm_deduct_m_from_d() + asm_save_d_as_m()
+            return asm_load_sp_value() + asm_decrement_address() + "D=D|M" + asm_save_result(args = 2)
         elif arg1 == "not":
-            return asm_load_sp_value() + "D=!D\n" + asm_save_d_as_m()
+            return asm_load_sp_value() + asm_decrement_address() + "D=!D\n" + asm_save_result()
         else:  
             return arg1
 
@@ -255,6 +256,10 @@ def asm_decrement_sp():
 
 def asm_save_d_as_m():
     return "M=D\n"
+
+def asm_save_result(args = 1):
+	""" args: the number of args the function had """
+	return "@SP\nA=M\n" + ("A=A-1\n" * args) + "M=D\n"
 
 def asm_deduct_m_from_d():
         return "D=M-D\n"
