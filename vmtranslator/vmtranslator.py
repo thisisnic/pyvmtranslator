@@ -124,11 +124,11 @@ class CodeWriter:
             return asm_load_sp_value() + "D=-D\n" + asm_save_result(args = 1)
         elif arg1 in ["gt", "lt", "eq"]:
             self.logical_label_num += 1
-            return asm_load_sp_value() + asm_decrement_address() + "" + self.asm_logical_comparison(arg1)
+            return asm_load_sp_value() + asm_decrement_address() + "D=D-M\n" + self.asm_logical_comparison(arg1)
         elif arg1 == "and":
-            return asm_load_sp_value() + asm_decrement_address() + "D=D&M" + asm_save_result(args = 2)
+            return asm_load_sp_value() + asm_decrement_address() + "D=D&M\n" + asm_save_result(args = 2)
         elif arg1 == "or":
-            return asm_load_sp_value() + asm_decrement_address() + "D=D|M" + asm_save_result(args = 2)
+            return asm_load_sp_value() + asm_decrement_address() + "D=D|M\n" + asm_save_result(args = 2)
         elif arg1 == "not":
             return asm_load_sp_value() + asm_decrement_address() + "D=!D\n" + asm_save_result()
         else:  
@@ -138,17 +138,16 @@ class CodeWriter:
         asm_compare_string = ""
         asm_compare_op = ""
 
-        # we invert the operations
         if op == "gt":
-            asm_compare_op = "JLE"
+            asm_compare_op = "JLT"
         elif op == "lt":
-            asm_compare_op = "JGE"
+            asm_compare_op = "JGT"
         elif op == "eq":
             asm_compare_op = "JNE"
 
-        asm_compare_string = "@FALSE" + str(self.logical_label_num) + "\n" + "D;" + asm_compare_op + "\n@SP\nA=M-1\nM=-1\n" + \
+        asm_compare_string = "@FALSE" + str(self.logical_label_num) + "\n" + "D;" + asm_compare_op + "\n@SP\nA=M-1\nA=A-1\nM=0\nD=A\n@SP\nM=D\n" + \
                             "@CONTINUE" + str(self.logical_label_num) + "\n0;JMP\n"+\
-                            "(FALSE" + str(self.logical_label_num) + ")\n@SP\nA=M-1\nM=0\n"+\
+                            "(FALSE" + str(self.logical_label_num) + ")\n@SP\nA=M-1\nA=A-1\nM=-1\nD=A\n@SP\nM=D\n"+\
                             "(CONTINUE" + str(self.logical_label_num) + ")\n"
 
         return asm_compare_string
