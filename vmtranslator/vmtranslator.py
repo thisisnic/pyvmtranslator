@@ -121,7 +121,7 @@ class CodeWriter:
         elif arg1 == "sub":
             return asm_load_sp_value() + asm_decrement_address() + "D=D-M\nD=-D\n"  + asm_save_result(args = 2)
         elif arg1 == "neg":
-            return asm_load_sp_value() + "D=-D\n" + + asm_save_result(args = 1)
+            return asm_load_sp_value() + "D=-D\n" + asm_save_result(args = 1)
         elif arg1 in ["gt", "lt", "eq"]:
             self.logical_label_num += 1
             return asm_load_sp_value() + asm_decrement_address() + "" + self.asm_logical_comparison(arg1)
