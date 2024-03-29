@@ -89,6 +89,7 @@ class CodeWriter:
     # opens the output file/stream and gets it ready to write to
         self.filename = output_file
         self.logical_label_num = 0
+        self.static_num = 0
 
     def write_next(self, line):
         try:
@@ -112,26 +113,23 @@ class CodeWriter:
         except Exception as e:
                 print("An error occurred while writing to the file:", e)
 
-
-   
-
-
     def translate_arithmetic(self, arg1):
         if arg1 == "add":
-            return asm_load_sp() + asm_decrement_address() + "D=D+M\n" + asm_save_d_as_m()
+            return asm_load_sp_value() + "A=A-1\nD=D+M\n@SP\nA=M\nA=A-1\nA=A-1\nM=D\n"
+            
         elif arg1 == "sub":
-            return asm_load_sp() + asm_decrement_address() + "D=D-M\n"  + asm_save_d_as_m() # or should it be M-D??
+            return asm_load_sp_value() + asm_decrement_address() + "D=D-M\n"  + asm_save_d_as_m() # or should it be M-D??
         elif arg1 == "neg":
-            return asm_load_sp() + "D=-D\n" + asm_save_d_as_m()
+            return asm_load_sp_value() + "D=-D\n" + asm_save_d_as_m()
         elif arg1 in ["gt", "lt", "eq"]:
             self.logical_label_num += 1
-            return asm_load_sp() + asm_decrement_address() + asm_deduct_m_from_d() + self.asm_logical_comparison(arg1)
+            return asm_load_sp_value() + asm_decrement_address() + asm_deduct_m_from_d() + self.asm_logical_comparison(arg1)
         elif arg1 == "and":
-            return asm_load_sp() + asm_decrement_address() + asm_deduct_m_from_d() + asm_save_d_as_m()
+            return asm_load_sp_value() + asm_decrement_address() + asm_deduct_m_from_d() + asm_save_d_as_m()
         elif arg1 == "or":
-            return asm_load_sp() + asm_decrement_address() + asm_deduct_m_from_d() + asm_save_d_as_m()
+            return asm_load_sp_value() + asm_decrement_address() + asm_deduct_m_from_d() + asm_save_d_as_m()
         elif arg1 == "not":
-            return asm_load_sp() + "D=!D\n" + asm_save_d_as_m()
+            return asm_load_sp_value() + "D=!D\n" + asm_save_d_as_m()
         else:  
             return arg1
 
@@ -147,10 +145,10 @@ class CodeWriter:
         elif op == "eq":
             asm_compare_op = "JNE"
 
-        asm_compare_string = "@FALSE" + self.logical_label_num + "\n" + "D;" + asm_compare_op + "\n@SP\nA=M-1\nM=-1\n" + \
-                            "@CONTINUE" + self.logical_label_num + "\n0;JMP\n"+\
-                            "(FALSE" + self.logical_label_num + ")\n@SP\nA=M-1\nM=0\n"+\
-                            "(CONTINUE" + self.logical_label_num + ")\n"
+        asm_compare_string = "@FALSE" + str(self.logical_label_num) + "\n" + "D;" + asm_compare_op + "\n@SP\nA=M-1\nM=-1\n" + \
+                            "@CONTINUE" + str(self.logical_label_num) + "\n0;JMP\n"+\
+                            "(FALSE" + str(self.logical_label_num) + ")\n@SP\nA=M-1\nM=0\n"+\
+                            "(CONTINUE" + str(self.logical_label_num) + ")\n"
 
         return asm_compare_string
 
@@ -160,12 +158,14 @@ class CodeWriter:
     # writes to the output file the assembly code that implements the given command
     #  where command is either C_POP or C_PUSH
         
-        string_to_write = str(command) + " " + segment + " " + index + "\n"
+        string_to_write = str(command) + " " + segment + " " + str(index) + "\n"
 
         if command == CommandType.C_PUSH and segment == "constant":
-            string_to_write = "@" + index + "\nD=A\n@SP\nM=D\n@SP\nA=A+1\n"
+            string_to_write = "@" + str(index) + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         if segment in ["local", "argument", "this", "that", "temp"]:
             string_to_write = asm_push_pop_standard(command, segment, index)
+        if segment == "static":
+            string_to_write = asm_static(command, index, self.filename.split("asm")[0])
             
         try:
             with open(self.filename, 'a') as file:
@@ -175,6 +175,15 @@ class CodeWriter:
                 print("An error occurred while writing to the file:", e)
 
     
+def asm_static(self, command, index, label_name):
+    
+    if command == CommandType.C_POP:
+        return ""
+    elif command == CommandType.C_PUSH:
+        self.static_num += 1
+        return ""
+
+
 def get_output_filename(input_filename):
     
     file_name, _ = os.path.splitext(os.path.basename(input_filename))
@@ -200,7 +209,7 @@ def asm_segment_index_from_offset(segment_name, offset):
     Pseudocode: addr=<segment>+<offset>
     
     """
-    return f"@{segment_name}\nA=D\n@{offset}\nD=D+A\n@13\nM=D\n"
+    return f"@{segment_name}\nD=A\n@{offset}\nD=D+A\n@13\nM=D\n"
 
 
 def asm_push_to_address_from_sp():
@@ -223,8 +232,8 @@ def asm_decrement_address():
     """
     return "A=A-1\n"
 
-def asm_load_sp():
-    return "@SP\nD=M\n"
+def asm_load_sp_value():
+    return "@SP\nA=M-1\nD=M\n"
 
 def asm_increment_sp():
 
