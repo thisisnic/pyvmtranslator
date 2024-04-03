@@ -105,7 +105,14 @@ class CodeWriter:
 
         if line['command_type'] in [CommandType.C_PUSH, CommandType.C_POP]:
             self.write_push_pop(line['command_type'], line['arg1'], line['arg2'])
-    
+
+    def write_terminal(self):
+        try:
+            with open(self.filename, 'a') as file:
+                file.write(asm_end_program())
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
+
     def write_arithmetic(self, command):
     # writes to the output file the assembly code that implements
     #  the given arithmetic command
@@ -115,24 +122,30 @@ class CodeWriter:
         except Exception as e:
                 print("An error occurred while writing to the file:", e)
 
+    # def asm_load_sp_value(): return "@SP\nA=M-1\nD=M\n"
+    # def asm_decrement_address(): return "A=A-1\n"
+    # def asm_save_result(args = 1): return "@SP\nA=M\n" + ("A=A-1\n" * args) + "M=D\n"
+    # def def asm_inc_sp():  return "@SP\nM=M-1\n"
+                
     def translate_arithmetic(self, arg1):
         if arg1 == "add":
-            return asm_load_sp_value() + asm_decrement_address() +"D=D+M\n" + asm_save_result(args = 2)
+            return asm_load_sp_value() + asm_decrement_address() +"D=D+M\n" + asm_save_result(args = 2) + asm_inc_sp()
         elif arg1 == "sub":
-            return asm_load_sp_value() + asm_decrement_address() + "D=D-M\nD=-D\n"  + asm_save_result(args = 2)
+            return asm_load_sp_value() + asm_decrement_address() + "D=D-M\nD=-D\n"  + asm_save_result(args = 2)+ asm_inc_sp()
         elif arg1 == "neg":
-            return asm_load_sp_value() + "D=-D\n" + asm_save_result(args = 1)
+            return asm_load_sp_value() + "D=-D\n" + asm_save_result(args = 1)+ asm_inc_sp()
         elif arg1 in ["gt", "lt", "eq"]:
             self.logical_label_num += 1
             return asm_load_sp_value() + asm_decrement_address() + "D=D-M\n" + self.asm_logical_comparison(arg1)
         elif arg1 == "and":
-            return asm_load_sp_value() + asm_decrement_address() + "D=D&M\n" + asm_save_result(args = 2)
+            return asm_load_sp_value() + asm_decrement_address() + "D=D&M\n" + asm_save_result(args = 2)+ asm_inc_sp()
         elif arg1 == "or":
-            return asm_load_sp_value() + asm_decrement_address() + "D=D|M\n" + asm_save_result(args = 2)
+            return asm_load_sp_value() + asm_decrement_address() + "D=D|M\n" + asm_save_result(args = 2) + asm_inc_sp()
         elif arg1 == "not":
-            return asm_load_sp_value() + asm_decrement_address() + "D=!D\n" + asm_save_result()
+            return asm_load_sp_value() + asm_decrement_address() + "D=!D\n" + asm_save_result(args = 1) 
         else:  
             return arg1
+        
 
     def asm_logical_comparison(self, op):
         asm_compare_string = ""
@@ -143,15 +156,16 @@ class CodeWriter:
         elif op == "lt":
             asm_compare_op = "JGT"
         elif op == "eq":
-            asm_compare_op = "JNE"
+            asm_compare_op = "JEQ"
 
-        asm_compare_string = "@FALSE" + str(self.logical_label_num) + "\n" + "D;" + asm_compare_op + "\n@SP\nA=M-1\nA=A-1\nM=0\nD=A\n@SP\nM=D\n" + \
+        asm_compare_string = "@FALSE" + str(self.logical_label_num) + "\n" + "D;" + asm_compare_op + "\n@SP\nA=M-1\nA=A-1\nM=0\nD=A\n"+asm_inc_sp()+ \
                             "@CONTINUE" + str(self.logical_label_num) + "\n0;JMP\n"+\
-                            "(FALSE" + str(self.logical_label_num) + ")\n@SP\nA=M-1\nA=A-1\nM=-1\nD=A\n@SP\nM=D\n"+\
+                            "(FALSE" + str(self.logical_label_num) + ")\n@SP\nA=M-1\nA=A-1\nM=-1\nD=A\n"+asm_inc_sp()+\
                             "(CONTINUE" + str(self.logical_label_num) + ")\n"
 
         return asm_compare_string
 
+    
 
     def write_push_pop(self, command, segment, index):
     # `command` is C_PUSH or C_POP, segment is a string, index is an int
@@ -189,7 +203,7 @@ def get_output_filename(input_filename):
     file_name, _ = os.path.splitext(os.path.basename(input_filename))
     output_filename = f"{file_name}.asm"
     
-    return output_filename
+    return os.path.dirname(input_filename) + "/" + output_filename
 
 
 def asm_push_pop_standard(command, segment, index):
@@ -211,6 +225,8 @@ def asm_segment_index_from_offset(segment_name, offset):
     """
     return f"@{segment_name}\nD=A\n@{offset}\nD=D+A\n@13\nM=D\n"
 
+def asm_inc_sp():
+        return "@SP\nM=M-1\n"
 
 def asm_push_to_address_from_sp():
     """
@@ -263,6 +279,9 @@ def asm_save_result(args = 1):
 def asm_deduct_m_from_d():
         return "D=M-D\n"
 
+def asm_end_program():
+        return "(END)\n@END\n0;JMP"
+
 def main():
 
     if len(sys.argv) != 2:
@@ -278,6 +297,8 @@ def main():
     while parser.has_more_commands():
         parsed_line = parser.parse_next()
         code_writer.write_next(parsed_line)
+
+    code_writer.write_terminal()
 
 if __name__ == "__main__":
     main()
