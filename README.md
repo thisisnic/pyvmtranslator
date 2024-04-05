@@ -18,7 +18,7 @@ python3 ./vmtranslator/vmtranslator.py ./MemoryAccess/BasicTest/BasicTest.vm
 
 
 
-### Test Steps:###
+### Test Steps:
 
 1. Run the VM programme in the VM emulator to understand what it is doing
 2. Use your translator to generate the assembly code
