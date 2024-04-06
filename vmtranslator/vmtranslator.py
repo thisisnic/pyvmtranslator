@@ -180,6 +180,8 @@ class CodeWriter:
             string_to_write = asm_push_pop_standard(command, segment, index)
         if segment == "temp":
             string_to_write = asm_push_pop_temp(command, index)
+        if segment == "pointer":
+            string_to_write = asm_push_pop_pointer(command, index)
         if segment == "static":
             string_to_write = asm_static(command, index, self.filename.split("asm")[0])
             
@@ -207,6 +209,17 @@ def get_output_filename(input_filename):
     
     return os.path.dirname(input_filename) + "/" + output_filename
 
+
+def asm_push_pop_pointer(command, index):
+
+    index = 3 + int(index)
+
+    # takes the value from the stack and puts it in register and stack decrements
+    if command == CommandType.C_POP:
+        return f"@SP\nA=M-1\nD=M\n@{index}\nM=D\n@SP\nM=M-1\n"
+    # copies the value to stack from register and stack increments
+    elif command == CommandType.C_PUSH:
+        return f"@{index}\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
 
 def asm_push_pop_standard(command, segment, index):
 
