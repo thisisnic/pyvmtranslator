@@ -192,7 +192,7 @@ class CodeWriter:
 def asm_static(self, command, index, label_name):
     
     if command == CommandType.C_POP:
-        return ""
+        return "@SP\nD=M\n@" + label_name + "." + self.static_num
     elif command == CommandType.C_PUSH:
         self.static_num += 1
         return ""
