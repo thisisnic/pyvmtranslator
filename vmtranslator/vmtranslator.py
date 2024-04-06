@@ -125,22 +125,22 @@ class CodeWriter:
     # def asm_load_sp_value(): return "@SP\nA=M-1\nD=M\n"
     # def asm_decrement_address(): return "A=A-1\n"
     # def asm_save_result(args = 1): return "@SP\nA=M\n" + ("A=A-1\n" * args) + "M=D\n"
-    # def def asm_inc_sp():  return "@SP\nM=M-1\n"
+    # def def asm_decrement_sp():  return "@SP\nM=M-1\n"
                 
     def translate_arithmetic(self, arg1):
         if arg1 == "add":
-            return asm_load_sp_value() + asm_decrement_address() +"D=D+M\n" + asm_save_result(args = 2) + asm_inc_sp()
+            return asm_load_sp_value() + asm_decrement_address() +"D=D+M\n" + asm_save_result(args = 2) + asm_decrement_sp()
         elif arg1 == "sub":
-            return asm_load_sp_value() + asm_decrement_address() + "D=D-M\nD=-D\n"  + asm_save_result(args = 2)+ asm_inc_sp()
+            return asm_load_sp_value() + asm_decrement_address() + "D=D-M\nD=-D\n"  + asm_save_result(args = 2)+ asm_decrement_sp()
         elif arg1 == "neg":
-            return asm_load_sp_value() + "D=-D\n" + asm_save_result(args = 1)+ asm_inc_sp()
+            return asm_load_sp_value() + "D=-D\n" + asm_save_result(args = 1)
         elif arg1 in ["gt", "lt", "eq"]:
             self.logical_label_num += 1
             return asm_load_sp_value() + asm_decrement_address() + "D=D-M\n" + self.asm_logical_comparison(arg1)
         elif arg1 == "and":
-            return asm_load_sp_value() + asm_decrement_address() + "D=D&M\n" + asm_save_result(args = 2)+ asm_inc_sp()
+            return asm_load_sp_value() + asm_decrement_address() + "D=D&M\n" + asm_save_result(args = 2)+ asm_decrement_sp()
         elif arg1 == "or":
-            return asm_load_sp_value() + asm_decrement_address() + "D=D|M\n" + asm_save_result(args = 2) + asm_inc_sp()
+            return asm_load_sp_value() + asm_decrement_address() + "D=D|M\n" + asm_save_result(args = 2) + asm_decrement_sp()
         elif arg1 == "not":
             return asm_load_sp_value() + asm_decrement_address() + "D=!D\n" + asm_save_result(args = 1) 
         else:  
@@ -158,9 +158,9 @@ class CodeWriter:
         elif op == "eq":
             asm_compare_op = "JEQ"
 
-        asm_compare_string = "@FALSE" + str(self.logical_label_num) + "\n" + "D;" + asm_compare_op + "\n@SP\nA=M-1\nA=A-1\nM=0\nD=A\n"+asm_inc_sp()+ \
+        asm_compare_string = "@FALSE" + str(self.logical_label_num) + "\n" + "D;" + asm_compare_op + "\n@SP\nA=M-1\nA=A-1\nM=0\nD=A\n"+asm_decrement_sp()+ \
                             "@CONTINUE" + str(self.logical_label_num) + "\n0;JMP\n"+\
-                            "(FALSE" + str(self.logical_label_num) + ")\n@SP\nA=M-1\nA=A-1\nM=-1\nD=A\n"+asm_inc_sp()+\
+                            "(FALSE" + str(self.logical_label_num) + ")\n@SP\nA=M-1\nA=A-1\nM=-1\nD=A\n"+asm_decrement_sp()+\
                             "(CONTINUE" + str(self.logical_label_num) + ")\n"
 
         return asm_compare_string
@@ -225,7 +225,7 @@ def asm_segment_index_from_offset(segment_name, offset):
     """
     return f"@{segment_name}\nD=A\n@{offset}\nD=D+A\n@13\nM=D\n"
 
-def asm_inc_sp():
+def asm_decrement_sp():
         return "@SP\nM=M-1\n"
 
 def asm_push_to_address_from_sp():
