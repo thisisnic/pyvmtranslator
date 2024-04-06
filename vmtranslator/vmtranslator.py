@@ -183,7 +183,8 @@ class CodeWriter:
         if segment == "pointer":
             string_to_write = asm_push_pop_pointer(command, index)
         if segment == "static":
-            string_to_write = asm_static(command, index, self.filename.split("asm")[0])
+            file_name, _ = os.path.splitext(os.path.basename(self.filename))
+            string_to_write = asm_static(command, index, file_name)
             
         try:
             with open(self.filename, 'a') as file:
@@ -193,13 +194,13 @@ class CodeWriter:
                 print("An error occurred while writing to the file:", e)
 
     
-def asm_static(self, command, index, label_name):
+def asm_static(command, index, label_name):
     
+    varname = label_name + "." + index
     if command == CommandType.C_POP:
-        return "@SP\nD=M\n@" + label_name + "." + self.static_num
+        return f"@SP\nA=M-1\nD=M\n@{varname}\nM=D\n@SP\nM=M-1\n"
     elif command == CommandType.C_PUSH:
-        self.static_num += 1
-        return ""
+        return f"@{varname}\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
 
 
 def get_output_filename(input_filename):
