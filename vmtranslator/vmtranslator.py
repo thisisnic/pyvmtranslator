@@ -176,8 +176,10 @@ class CodeWriter:
 
         if command == CommandType.C_PUSH and segment == "constant":
             string_to_write = "@" + str(index) + "\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        if segment in ["local", "argument", "this", "that", "temp"]:
+        if segment in ["local", "argument", "this", "that"]:
             string_to_write = asm_push_pop_standard(command, segment, index)
+        if segment == "temp":
+            string_to_write = asm_push_pop_temp(command, index)
         if segment == "static":
             string_to_write = asm_static(command, index, self.filename.split("asm")[0])
             
@@ -208,13 +210,27 @@ def get_output_filename(input_filename):
 
 def asm_push_pop_standard(command, segment, index):
 
-    if segment == "temp":
-        segment = "5"
+    seg = translate_memory_segment(segment)
 
+    # push takes a value from a location and copies it to the stack
     if command == CommandType.C_PUSH:
-        return asm_segment_index_from_offset(segment, index) + asm_push_to_address_from_sp() + asm_increment_sp() 
+         
+        return f"@{seg}\nD=M\n@{index}\nA=D+A\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"  
+    
+    # pop removes the value from the stack and saves it to the location
     elif command == CommandType.C_POP:
-        return asm_segment_index_from_offset(segment, index) + asm_decrement_sp() + asm_push_to_address_from_sp()
+        # get the location and save it in R13                get the value from the prev stack val
+        return f"@{seg}\nD=M\n@{index}\nD=D+A\n@13\nM=D\n" + "@SP\nM=M-1\nA=M\nD=M\n@13\nA=M\nM=D\n" 
+        
+def asm_push_pop_temp(command, index):
+
+    address = 5 + int(index)
+    if command == CommandType.C_PUSH:
+        # push takes it from temp and puts on the stack   
+        return f"@{address}\nD=M\n@SP\nA=M\nM=D\n" + asm_increment_sp()
+
+    elif command == CommandType.C_POP:
+        return f"@SP\nA=M-1\nD=M\n@{address}\nM=D\n" + asm_decrement_sp()
 
 def asm_segment_index_from_offset(segment_name, offset):
 
@@ -223,7 +239,10 @@ def asm_segment_index_from_offset(segment_name, offset):
     Pseudocode: addr=<segment>+<offset>
     
     """
-    return f"@{segment_name}\nD=A\n@{offset}\nD=D+A\n@13\nM=D\n"
+
+    seg = translate_memory_segment(segment_name)
+
+    return f"@{seg}\nD=M\n@{offset}\nD=D+A\n@13\nM=D\n"
 
 def asm_decrement_sp():
         return "@SP\nM=M-1\n"
@@ -234,7 +253,7 @@ def asm_push_to_address_from_sp():
     Pseudocode: *addr=*SP
     """
 
-    return "@SP\nD=M\n@13\nA=M\nM=D\n"
+    return "@SP\nA=M\nD=M\n@13\nA=M\nM=D\n"
 
 def asm_increment_address():
     """
@@ -281,6 +300,20 @@ def asm_deduct_m_from_d():
 
 def asm_end_program():
         return "(END)\n@END\n0;JMP"
+
+def translate_memory_segment(segment):
+    translations = {
+        "argument": "ARG",
+        "local": "LCL",
+        "static": "STATIC",
+        "constant": "CONSTANT",
+        "this": "THIS",
+        "that": "THAT",
+        "pointer": "POINTER",
+        "temp": "5"
+    }
+    
+    return translations.get(segment, "UNKNOWN")
 
 def main():
 
