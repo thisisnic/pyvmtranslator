@@ -167,7 +167,7 @@ class CodeWriter:
     # TODO: write assembly code for label command
     def write_label(self, label):
 
-        label_assembly = ""
+        label_assembly = "(" + label + ")\n"
         try:
             with open(self.filename, 'a') as file:
                 file.write(label_assembly)
