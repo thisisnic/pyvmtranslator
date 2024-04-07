@@ -187,7 +187,7 @@ class CodeWriter:
     # TODO: write assembly code for if-goto command
     def write_if(self, label):
 
-        ifgoto_assembly = ""
+        ifgoto_assembly = f"@SP\nA=M-1\nD=M\n@{label}\nD;JGT\n"
         try:
             with open(self.filename, 'a') as file:
                 file.write(ifgoto_assembly)
