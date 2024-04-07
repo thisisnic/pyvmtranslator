@@ -38,17 +38,18 @@ class Parser:
 
         # remove any comments and whitespace
         line_to_parse = re.sub(re.compile("//.*"), "", line_to_parse).strip()
-
+        
         self.next_line_index += 1
 
-        parsed_line = {'og_line': line_to_parse, 'command_type': None, 'arg1': '', 'arg2': ''}
-        parsed_line['command_type'] = self.command_type(line_to_parse)
-        if(parsed_line['command_type'] != CommandType.C_RETURN):
-            parsed_line['arg1'] = self.arg1(line_to_parse, parsed_line['command_type'])
-        if(parsed_line['command_type'] in [CommandType.C_PUSH, CommandType.C_POP, CommandType.C_FUNCTION, CommandType.C_CALL]):
-            parsed_line['arg2'] = self.arg2(line_to_parse)
+        if line_to_parse != "":
+            parsed_line = {'og_line': line_to_parse, 'command_type': None, 'arg1': '', 'arg2': ''}
+            parsed_line['command_type'] = self.command_type(line_to_parse)
+            if(parsed_line['command_type'] != CommandType.C_RETURN):
+                parsed_line['arg1'] = self.arg1(line_to_parse, parsed_line['command_type'])
+            if(parsed_line['command_type'] in [CommandType.C_PUSH, CommandType.C_POP, CommandType.C_FUNCTION, CommandType.C_CALL]):
+                parsed_line['arg2'] = self.arg2(line_to_parse)
 
-        return parsed_line
+            return parsed_line
 
     def has_more_commands(self):
         return (self.next_line_index < len(self.contents))
@@ -177,7 +178,7 @@ class CodeWriter:
     # TODO: write assembly code for goto command
     def write_goto(self, label):
 
-        goto_assembly = ""
+        goto_assembly = f"@{label}\n0;JMP\n"
         try:
             with open(self.filename, 'a') as file:
                 file.write(goto_assembly)
@@ -443,7 +444,8 @@ def main():
 
     while parser.has_more_commands():
         parsed_line = parser.parse_next()
-        code_writer.write_next(parsed_line)
+        if parsed_line:
+            code_writer.write_next(parsed_line)
 
     code_writer.write_terminal()
 
