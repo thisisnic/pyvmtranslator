@@ -156,7 +156,7 @@ class CodeWriter:
     # TODO: write code which will initialise relevant value in .asm file
     def write_init(self):
 
-        init_code = "@256\nD=M\n@0\nM=D\n"
+        init_code = "@256\nD=A\n@0\nM=D\n"
 
         try:
             with open(self.filename, 'a') as file:
