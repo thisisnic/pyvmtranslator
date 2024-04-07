@@ -1,6 +1,7 @@
 from enum import Enum
 import os
 import sys
+import re
 
 class CommandType(Enum):
     C_ARITHMETIC = 1
@@ -32,7 +33,12 @@ class Parser:
         return contents
     
     def parse_next(self):
+        # get the line
         line_to_parse = self.contents[self.next_line_index]
+
+        # remove any comments and whitespace
+        line_to_parse = re.sub(re.compile("//.*"), "", line_to_parse).strip()
+
         self.next_line_index += 1
 
         parsed_line = {'og_line': line_to_parse, 'command_type': None, 'arg1': '', 'arg2': ''}
@@ -56,6 +62,8 @@ class Parser:
             return CommandType.C_ARITHMETIC
         if line.startswith("call"):
             return CommandType.C_CALL
+        if line.startswith("return"):
+            return CommandType.C_RETURN
         if line.startswith("function"):
             return CommandType.C_FUNCTION
         if line.startswith("goto"):
@@ -87,11 +95,14 @@ class Parser:
 class CodeWriter:
     def __init__(self, output_file):
     # opens the output file/stream and gets it ready to write to
-        self.filename = output_file
+        self.set_filename(output_file)
         self.logical_label_num = 0
         self.static_num = 0
         if os.path.isfile(output_file):
             os.remove(output_file)
+
+    def set_filename(self, filename):
+        self.filename = filename
 
     def write_next(self, line):
         try:
@@ -103,8 +114,22 @@ class CodeWriter:
         if line['command_type'] == CommandType.C_ARITHMETIC:
             self.write_arithmetic(line['arg1'])
 
-        if line['command_type'] in [CommandType.C_PUSH, CommandType.C_POP]:
+        elif line['command_type'] in [CommandType.C_PUSH, CommandType.C_POP]:
             self.write_push_pop(line['command_type'], line['arg1'], line['arg2'])
+
+        elif line['command_type'] == CommandType.C_LABEL:
+            self.write_label(line['arg1'])
+        elif line['command_type'] == CommandType.C_CALL:
+            self.write_call(line['arg1'])
+        elif line['command_type'] == CommandType.C_FUNCTION:
+            self.write_function(line['arg1'])
+        elif line['command_type'] == CommandType.C_GOTO:
+            self.write_goto(line['arg1'])
+        elif line['command_type'] == CommandType.C_IF:
+            self.write_if(line['arg1'])
+        elif line['command_type'] == CommandType.C_RETURN:
+            self.write_return()
+
 
     def write_terminal(self):
         try:
@@ -127,6 +152,79 @@ class CodeWriter:
     # def asm_save_result(args = 1): return "@SP\nA=M\n" + ("A=A-1\n" * args) + "M=D\n"
     # def def asm_decrement_sp():  return "@SP\nM=M-1\n"
                 
+    # TODO: write code which will initialise relevant value in .asm file
+    def write_init(self):
+
+        init_code = ""
+
+        try:
+            with open(self.filename, 'a') as file:
+                file.write(init_code)
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
+
+
+    # TODO: write assembly code for label command
+    def write_label(self, label):
+
+        label_assembly = ""
+        try:
+            with open(self.filename, 'a') as file:
+                file.write(label_assembly)
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
+
+    # TODO: write assembly code for goto command
+    def write_goto(self, label):
+
+        goto_assembly = ""
+        try:
+            with open(self.filename, 'a') as file:
+                file.write(goto_assembly)
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
+
+    # TODO: write assembly code for if-goto command
+    def write_if(self, label):
+
+        ifgoto_assembly = ""
+        try:
+            with open(self.filename, 'a') as file:
+                file.write(ifgoto_assembly)
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
+
+    # TODO: write assembly code for function command
+    def write_function(self, function_name, num_vars):
+
+        function_assembly = ""
+        try:
+            with open(self.filename, 'a') as file:
+                file.write(function_assembly)
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
+
+    # TODO: write assembly code for call command
+    def write_call(self, function_name, num_args):
+
+        call_assembly = ""
+        try:
+            with open(self.filename, 'a') as file:
+                file.write(call_assembly)
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
+
+    # TODO: write assembly code for return command
+    def write_return(self, function_name, num_args):
+
+        return_assembly = ""
+        try:
+            with open(self.filename, 'a') as file:
+                file.write(return_assembly)
+        except Exception as e:
+                print("An error occurred while writing to the file:", e)
+
+
     def translate_arithmetic(self, arg1):
         if arg1 == "add":
             return asm_load_sp_value() + asm_decrement_address() +"D=D+M\n" + asm_save_result(args = 2) + asm_decrement_sp()
@@ -340,6 +438,8 @@ def main():
 
     parser = Parser(input_filename)
     code_writer = CodeWriter(get_output_filename(input_filename))
+
+    code_writer.write_init()
 
     while parser.has_more_commands():
         parsed_line = parser.parse_next()
