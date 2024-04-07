@@ -156,13 +156,15 @@ class CodeWriter:
     # TODO: write code which will initialise relevant value in .asm file
     def write_init(self):
 
-        init_code = ""
+        init_code = "@256\nD=M\n@0\nM=D\n"
 
         try:
             with open(self.filename, 'a') as file:
                 file.write(init_code)
         except Exception as e:
                 print("An error occurred while writing to the file:", e)
+
+        self.write_call("Sys.init", 0)
 
 
     # TODO: write assembly code for label command
