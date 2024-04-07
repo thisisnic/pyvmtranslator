@@ -123,13 +123,13 @@ class CodeWriter:
         elif line['command_type'] == CommandType.C_CALL:
             self.write_call(line['arg1'])
         elif line['command_type'] == CommandType.C_FUNCTION:
-            self.write_function(line['arg1'])
+            self.write_function(line['arg1'], line['arg2'])
         elif line['command_type'] == CommandType.C_GOTO:
             self.write_goto(line['arg1'])
         elif line['command_type'] == CommandType.C_IF:
             self.write_if(line['arg1'])
         elif line['command_type'] == CommandType.C_RETURN:
-            self.write_return()
+            self.write_return(line['arg1'], line['arg2'])
 
 
     def write_terminal(self):
@@ -153,7 +153,6 @@ class CodeWriter:
     # def asm_save_result(args = 1): return "@SP\nA=M\n" + ("A=A-1\n" * args) + "M=D\n"
     # def def asm_decrement_sp():  return "@SP\nM=M-1\n"
                 
-    # TODO: write code which will initialise relevant value in .asm file
     def write_init(self):
 
         init_code = "@256\nD=A\n@0\nM=D\n"
@@ -166,8 +165,6 @@ class CodeWriter:
 
         self.write_call("Sys.init", 0)
 
-
-    # TODO: write assembly code for label command
     def write_label(self, label):
 
         label_assembly = "(" + label + ")\n"
@@ -177,7 +174,6 @@ class CodeWriter:
         except Exception as e:
                 print("An error occurred while writing to the file:", e)
 
-    # TODO: write assembly code for goto command
     def write_goto(self, label):
 
         goto_assembly = f"@{label}\n0;JMP\n"
@@ -187,7 +183,6 @@ class CodeWriter:
         except Exception as e:
                 print("An error occurred while writing to the file:", e)
 
-    # TODO: write assembly code for if-goto command
     def write_if(self, label):
 
         ifgoto_assembly = f"@SP\nA=M-1\nD=M\n@SP\nM=M-1\n@{label}\nD;JGT\n"
