@@ -180,7 +180,7 @@ class CodeWriter:
     # TODO: write assembly code for goto command
     def write_goto(self, label):
 
-        goto_assembly = f"@{label}\n0;JMP\n"
+        goto_assembly = f"@SP\nM=M-1\n@{label}\n0;JMP\n"
         try:
             with open(self.filename, 'a') as file:
                 file.write(goto_assembly)
@@ -190,7 +190,7 @@ class CodeWriter:
     # TODO: write assembly code for if-goto command
     def write_if(self, label):
 
-        ifgoto_assembly = f"@SP\nA=M-1\nD=M\n@{label}\nD;JGT\n"
+        ifgoto_assembly = f"@SP\nA=M-1\nD=M\n@SP\nM=M-1\n@{label}\nD;JGT\n"
         try:
             with open(self.filename, 'a') as file:
                 file.write(ifgoto_assembly)
