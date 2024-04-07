@@ -98,7 +98,7 @@ class CodeWriter:
     # opens the output file/stream and gets it ready to write to
         self.set_filename(output_file)
         self.logical_label_num = 0
-        self.static_num = 0
+        self.return_num = 0
         if os.path.isfile(output_file):
             os.remove(output_file)
 
@@ -194,8 +194,10 @@ class CodeWriter:
 
     # TODO: write assembly code for function command
     def write_function(self, function_name, num_vars):
-
-        function_assembly = ""
+        label = "(" + function_name + ")\n"
+        setup_local = ("@SP\nD=M\n@LCL\nM=D\n" + "@SP\nA=M\nM=0\n@SP\nM=M+1\n" * num_vars)
+        function_assembly = label + setup_local
+        
         try:
             with open(self.filename, 'a') as file:
                 file.write(function_assembly)
@@ -205,7 +207,14 @@ class CodeWriter:
     # TODO: write assembly code for call command
     def write_call(self, function_name, num_args):
 
-        call_assembly = ""
+        # 1. set the arg pointer to the address of the first of the N values which are arguments to our function
+# We now know what is above the arg pointer is the working stack of the caller and what is below the args is the arguments of the callee
+# 2. save the state of the caller. stack is safe but need to know the segments, so we save (in order from top to bottom): return address, LCL, ARG, THIS, THAT
+# 3. Jump to execute function Foo
+        memory_setup = ""
+        return_label = f"(RET_ADDRESS_CALL{self.return_num})\n"
+        call_assembly = memory_setup + f"@{function_name}\n0;JMP\n" + return_label
+        
         try:
             with open(self.filename, 'a') as file:
                 file.write(call_assembly)
@@ -215,12 +224,28 @@ class CodeWriter:
     # TODO: write assembly code for return command
     def write_return(self, function_name, num_args):
 
-        return_assembly = ""
+        # get the return address and save in R14
+        return_assembly = "@LCL\nD=M\n@5\nD=D-A\nA=D\nD=M\n@14\nM=D"
+
+# The return command:
+# 1. take the topmost value from the stack and copy it into argument 0
+        return_assembly = return_assembly + "@SP\nA=M\nD=M\n@ARG\nA=D\nD=A\n@13\nM=D\n"    
+# 2. restore the segment pointers of the caller
+        return_assembly = return_assembly + "@R13\nD=M\n@THAT\nD=D-1\nM=D\n@THIS\nD=D-1\nM=D\n@ARG\nD=D-1\nM=D\n@LCL\nD=D-1\nM=D\n"
+# 4. Set SP for the caller (just after where argument 0 was set to)
+        return_assembly = return_assembly + "@13\nD=M\n@SP\nM=D+1\n"
+# 5. Jump to return address within caller's code
+        return_assembly = return_assembly + "@14\nA=M\n"
+    
+        # a different approach
+
+    
         try:
             with open(self.filename, 'a') as file:
                 file.write(return_assembly)
         except Exception as e:
                 print("An error occurred while writing to the file:", e)
+
 
 
     def translate_arithmetic(self, arg1):
