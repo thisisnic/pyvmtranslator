@@ -123,7 +123,7 @@ class CodeWriter:
         elif line['command_type'] == CommandType.C_CALL:
             self.write_call(line['arg1'])
         elif line['command_type'] == CommandType.C_FUNCTION:
-            self.write_function(line['arg1'], line['arg2'])
+            self.write_function(line['arg1'], int(line['arg2']))
         elif line['command_type'] == CommandType.C_GOTO:
             self.write_goto(line['arg1'])
         elif line['command_type'] == CommandType.C_IF:
@@ -225,20 +225,20 @@ class CodeWriter:
     def write_return(self, function_name, num_args):
 
         # get the return address and save in R14
-        return_assembly = "@LCL\nD=M\n@5\nD=D-A\nA=D\nD=M\n@14\nM=D"
+        return_assembly = "@LCL\nD=M\n@R13\nM=D\n@R13\nD=M\n@5\nD=D-A\nA=D\nD=M\n@14\nM=D\n"
 
 # The return command:
 # 1. take the topmost value from the stack and copy it into argument 0
-        return_assembly = return_assembly + "@SP\nA=M\nD=M\n@ARG\nA=D\nD=A\n@13\nM=D\n"    
+        return_assembly = return_assembly + "@SP\nA=M-1\nD=M\n@ARG\nA=M\nM=D\n@ARG\nD=M\n@SP\nM=D+1\n"    
 # 2. restore the segment pointers of the caller
-        return_assembly = return_assembly + "@R13\nD=M\n@THAT\nD=D-1\nM=D\n@THIS\nD=D-1\nM=D\n@ARG\nD=D-1\nM=D\n@LCL\nD=D-1\nM=D\n"
-# 4. Set SP for the caller (just after where argument 0 was set to)
-        return_assembly = return_assembly + "@13\nD=M\n@SP\nM=D+1\n"
+        return_assembly = return_assembly + "@R13\nD=M\n@LCL\nD=D-A\nA=D\nD=M\n"
+        
+        count = 2
+        for segment in ['THAT', 'THIS', 'ARG']:
+            return_assembly = return_assembly + f"@{segment}\nM=D\n@13\nD=M\n@{count}\nD=D-A\nA=D\nD=M\n"
+            count += 1 
 # 5. Jump to return address within caller's code
-        return_assembly = return_assembly + "@14\nA=M\n"
-    
-        # a different approach
-
+        return_assembly = return_assembly + "@LCL\nM=D\n@14\nA=M\n"
     
         try:
             with open(self.filename, 'a') as file:
@@ -462,7 +462,9 @@ def main():
     parser = Parser(input_filename)
     code_writer = CodeWriter(get_output_filename(input_filename))
 
-    code_writer.write_init()
+    multifile = False
+    if multifile:
+        code_writer.write_init()
 
     while parser.has_more_commands():
         parsed_line = parser.parse_next()
