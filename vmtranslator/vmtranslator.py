@@ -2,6 +2,7 @@ from enum import Enum
 import os
 import sys
 import re
+import tempfile
 
 class CommandType(Enum):
     C_ARITHMETIC = 1
@@ -121,7 +122,7 @@ class CodeWriter:
         elif line['command_type'] == CommandType.C_LABEL:
             self.write_label(line['arg1'])
         elif line['command_type'] == CommandType.C_CALL:
-            self.write_call(line['arg1'])
+            self.write_call(line['arg1'], int(line['arg2'])), 
         elif line['command_type'] == CommandType.C_FUNCTION:
             self.write_function(line['arg1'], int(line['arg2']))
         elif line['command_type'] == CommandType.C_GOTO:
@@ -324,12 +325,18 @@ def asm_static(command, index, label_name):
         return f"@{varname}\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
 
 
-def get_output_filename(input_filename):
+def get_output_filename(input_filename, is_dir = False):
+
+    if is_dir:
+        file_name = os.path.basename(input_filename.rstrip("/"))
+    else:
+        file_name, _ = os.path.splitext(os.path.basename(input_filename))
     
-    file_name, _ = os.path.splitext(os.path.basename(input_filename))
     output_filename = f"{file_name}.asm"
-    
-    return os.path.dirname(input_filename) + "/" + output_filename
+
+    out_path = os.path.dirname(input_filename) + "/" + output_filename
+
+    return out_path
 
 
 def asm_push_pop_pointer(command, index):
@@ -456,14 +463,42 @@ def main():
         print("Usage: python vm_translator.py <input_file_path>")
         sys.exit(1)
 
-    input_filename = sys.argv[1]
+    input = sys.argv[1]
 
+    isfile = os.path.isfile(input) and os.path.splitext()[1] == ".vm"
+    isdir = os.path.isdir(input)
 
-    parser = Parser(input_filename)
-    code_writer = CodeWriter(get_output_filename(input_filename))
+    if not isfile and not isdir:
+        print("neither file nor dir")
 
-    multifile = False
-    if multifile:
+    outfile = get_output_filename(input, isdir)
+
+    # if input is a directory, scan for all VM files and dump then in a tempfile with sys.vm last
+    if isdir:
+        vm_files = [f for f in os.listdir(input) if f.endswith('.vm')]
+        if not vm_files:
+            print("No .vm files found.")
+        
+        if 'Sys.vm' in vm_files:
+            vm_files.remove('Sys.vm')
+            vm_files.append('Sys.vm')
+
+        file_name = os.path.basename(input) + ".vm"
+
+        with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix=".vm", prefix=file_name) as temp_file:
+            for vm_file in vm_files:
+                with open(os.path.join(input, vm_file), 'r') as file:
+                    temp_file.write(file.read())
+                    temp_file.write("\n")
+
+        input = temp_file.name
+        print(f"Files dumped to {temp_file.name}")
+
+    parser = Parser(input)
+
+    code_writer = CodeWriter(outfile)
+
+    if isdir:
         code_writer.write_init()
 
     while parser.has_more_commands():
